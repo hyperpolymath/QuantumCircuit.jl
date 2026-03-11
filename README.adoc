@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+= QuantumCircuit.jl
+Jonathan D. A. Jewell <j.d.a.jewell@open.ac.uk>
+:toc:
+
+== Overview
+
+Quantum circuit simulation and manipulation library for Julia.
+
+== Installation
+
+[source,julia]
+----
+using Pkg
+Pkg.add(url="https://github.com/hyperpolymath/QuantumCircuit.jl")
+----
+
+== License
+
+PMPL-1.0-or-later (MPL-2.0 fallback in Project.toml for Julia ecosystem compatibility).
