@@ -1,20 +1,102 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
-= QuantumCircuit.jl
-Jonathan D. A. Jewell <j.d.a.jewell@open.ac.uk>
-:toc:
+# QuantumCircuit.jl
 
-== Overview
+**Quantum circuit simulation and manipulation in Julia**
 
-Quantum circuit simulation and manipulation library for Julia.
+![Julia](https://img.shields.io/badge/julia-1.10+-blue.svg)
+![Status](https://img.shields.io/badge/status-research%20prototype-orange.svg)
 
-== Installation
+---
 
-[source,julia]
-----
+## Overview
+
+**QuantumCircuit.jl** is a Julia package for simulating and manipulating quantum circuits. It provides a framework for building, optimizing, and analyzing quantum algorithms with a focus on clarity and extensibility.
+
+### Features:
+- Define and manipulate quantum states and gates
+- Apply gates to states and measure outcomes
+- Support for custom backends (e.g., GPU-accelerated)
+- Integration with the Hyperpolymath ecosystem for formal verification
+
+---
+
+## Installation
+
+```julia
 using Pkg
 Pkg.add(url="https://github.com/hyperpolymath/QuantumCircuit.jl")
-----
+```
 
-== License
+> **Note:** Requires Julia 1.10+
 
-PMPL-1.0-or-later (MPL-2.0 fallback in Project.toml for Julia ecosystem compatibility).
+---
+
+## Quick Start
+
+### 1. Load the package
+```julia
+using QuantumCircuit
+```
+
+### 2. Define a quantum state
+```julia
+# |00>
+state = QuantumState(ComplexF64[1, 0, 0, 0])
+```
+
+### 3. Apply a Hadamard gate
+```julia
+const HADAMARD = ComplexF64[1 1; 1 -1] / sqrt(2.0)
+gate = QuantumGate("H", HADAMARD, [Qubit(1)])
+new_state = apply_gate(state, gate)
+```
+
+### 4. Measure the state
+```julia
+outcome, collapsed_state = measure(new_state)
+println("Measurement outcome: $outcome")
+```
+
+---
+
+## Examples
+
+### Create a Bell state (|00> + |11>)/√2
+```julia
+using QuantumCircuit
+
+# |00>
+state = QuantumState(ComplexF64[1, 0, 0, 0])
+
+# Apply Hadamard to qubit 1
+h_gate = QuantumGate("H", ComplexF64[1 1; 1 -1]/sqrt(2), [Qubit(1)])
+state = apply_gate(state, h_gate)  # Now: (|00> + |10>)/√2
+
+# Manually apply CNOT: |00>→|00>, |10>→|11>
+new_amps = zeros(ComplexF64, 4)
+new_amps[1] = state.amplitudes[1]  # |00>
+new_amps[4] = state.amplitudes[3]  # |11>
+bell_state = QuantumState(new_amps)
+
+println("Bell state created! State vector: ", bell_state.amplitudes)
+```
+
+---
+
+## Backends
+
+QuantumCircuit.jl supports multiple backends:
+- **Julia**: Pure Julia implementation (default)
+- **GPU**: Use `CUDA.jl` or `AMDGPU.jl` for GPU acceleration
+- **Coprocessors**: Offload computations via `AcceleratorGate.jl`
+
+> **To enable GPU/coprocessor backends:**
+> ```julia
+> Pkg.add("CUDA")  # or AMDGPU, Metal, etc.
+> Pkg.add(url="https://github.com/hyperpolymath/AcceleratorGate.jl")
+> ```
+
+---
+
+## License
+
+This package is licensed under the **PMPL-1.0-or-later** license. See [LICENSE](LICENSE) for details.
