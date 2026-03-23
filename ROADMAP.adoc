@@ -1,0 +1,63 @@
+= QuantumCircuit.jl Roadmap
+:description: Planned features and milestones for QuantumCircuit.jl
+:license: PMPL-1.0-or-later
+:toc: auto
+:toc-placement!:
+:source-highlighter: pygments
+:pygments-style: monokai
+:icons: font
+
+toc::[]
+
+== Current Status
+
+* **v0.1.0**: Core framework, Idris2/Zig integration, single-qubit gates, measurement, state evolution.
+* **Research Prototype**: Not yet production-ready; API may change.
+
+---
+
+== Upcoming Releases
+
+=== v0.2.0 (Q2 2026)
+
+* [ ] **Multi-qubit gates** (`CNOT`, `Toffoli`, etc.) via `apply_gate`
+* [ ] **State tomography** for quantum state reconstruction
+* [ ] **Quantum circuit optimization** (gate cancellation, merging)
+* [ ] **Documentation overhaul** with examples and API reference
+* [ ] **CI/CD improvements** (automated testing, coverage, benchmarks)
+
+=== v0.3.0 (Q3 2026)
+
+* [ ] **GPU acceleration** (CUDA, AMDGPU, Metal support)
+* [ ] **Quantum error correction** (surface code, stabilizer codes)
+* [ ] **Integration with JuliaQuantum** and other quantum packages
+* [ ] **Interoperability** with QASM and OpenQASM
+
+=== v0.4.0 (Q4 2026)
+
+* [ ] **Formal verification** of quantum circuits (Idris2 proofs)
+* [ ] **Quantum compiler backend** (LLVM for quantum instructions)
+* [ ] **Benchmarking suite** for performance comparison
+* [ ] **Tutorials** (quantum teleportation, superdense coding, etc.)
+
+---
+
+== Long-Term Goals (v1.0+)
+
+* [ ] **Industry-ready certification** for safety-critical systems
+* [ ] **Support for distributed quantum computing** (MPI, MPI.jl)
+* [ ] **Quantum machine learning** integration (Flux.jl, Knet.jl)
+* [ ] **Hardware-aware compilation** (IBMQ, Rigetti, IonQ backends)
+
+---
+== How to Contribute
+
+* Report issues or suggest features: https://github.com/hyperpolymath/QuantumCircuit.jl/issues
+* Submit pull requests for new gates, backends, or optimizations
+* Join discussions on the https://github.com/hyperpolymath/QuantumCircuit.jl/discussions[Discussions] page
+
+---
+== Acknowledgments
+
+Roadmap inspired by the Julia quantum computing community and the Hyperpolymath ecosystem. Special thanks to all contributors and users!
+
