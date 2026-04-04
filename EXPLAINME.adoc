@@ -1,34 +1,139 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
 = QuantumCircuit.jl — Show Me The Receipts
+Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 :toc:
 :icons: font
 
-The README makes claims. This file backs them up.
+The README makes claims. This file backs them up with file paths, honest caveats,
+and a precise description of the critical path through the code.
 
 [quote, README]
 ____
-Jonathan D. A. Jewell <j.d.a.jewell@open.ac.uk>
+QuantumCircuit.jl is a Julia package for simulating and manipulating quantum circuits.
+It provides a framework for building, optimizing, and analyzing quantum algorithms with
+a focus on clarity and extensibility. Features: define and manipulate quantum states
+and gates; apply gates to states and measure outcomes; support for custom backends
+(GPU-accelerated); integration with the Hyperpolymath ecosystem for formal verification.
 ____
 
-== Technology Choices
+== What It Actually Does Today
+
+=== Claim: Gate application with correct unitary mathematics
+
+*True and tested.* `apply_gate(state::QuantumState, gate::QuantumGate)` in
+`src/QuantumCircuit.jl` builds the full n-qubit operator by Kronecker-producting
+the gate matrix with identity matrices for all non-target qubits (via
+`_expand_single_gate`), then multiplies the state vector. The test suite verifies:
+
+- H|0⟩ = (|0⟩ + |1⟩)/√2 to atol=1e-12
+- X|0⟩ = |1⟩ and X|1⟩ = |0⟩ (Pauli-X NOT gate)
+- H² = I (double-Hadamard identity)
+- Z(|0⟩+|1⟩)/√2 = (|0⟩-|1⟩)/√2 (phase flip)
+- Normalisation preserved after every gate application
+
+All four standard gate constants (`HADAMARD`, `PAULI_X`, `PAULI_Y`, `PAULI_Z`) are
+tested for unitarity (U * U† ≈ I) and self-adjointness.
+
+=== Claim: Multi-backend dispatch to GPU / coprocessor accelerators
+
+*Architecture is real; hardware backends are conditional.* Every core operation
+(`apply_gate`, `measure`, `tensor_product`, `state_evolve`) checks `current_backend()`
+and, if non-Julia, calls the appropriate `backend_*` hook from
+`src/backends/abstract.jl`. If the backend returns `nothing`, the code falls through
+to the pure-Julia implementation. GPU extensions (CUDA, ROCm, Metal) are declared
+as `[extensions]` in `Project.toml` and loaded only when corresponding packages
+are present. A `_ka_kronecker!` GPU kernel for tensor product is conditionally
+compiled via KernelAbstractions.jl.
+
+*Honest caveat:* Coprocessor backend stubs (QPU, TPU, FPGA, etc.) are
+interface-correct but return `nothing` and fall through to Julia. The Hadamard and
+Bell-state tests run exclusively on the pure-Julia backend.
+
+=== Claim: Hamiltonian time evolution
+
+`state_evolve(state, hamiltonian, dt)` computes U = exp(-i·H·dt) using
+`LinearAlgebra.exp` and applies U to the state vector. Verified: zero dt is the
+identity; |0⟩ under Pauli-Z picks up only a global phase; Rabi oscillation under
+Pauli-X matches cos²(t)/sin²(t) analytically (atol=1e-10).
+
+== How It Works
+
+Critical path for a gate application:
+
+. `QuantumState(ComplexF64[...])` — inner constructor validates power-of-2 length.
+. `QuantumGate("H", HADAMARD, [Qubit(1)])` — stores matrix and target qubit index.
+. `apply_gate(state, gate)`:
+  .. Checks `current_backend()`; delegates to `backend_gate_apply` if non-Julia.
+  .. Calls `_expand_single_gate(gate.matrix, target_index, n_qubits)` — iterates
+     qubits, Kronecker-products gate matrix at target position, identity elsewhere.
+  .. Returns `QuantumState(full_op * state.amplitudes)`.
+. `measure(state)` — computes `abs2.(amplitudes)`, samples by cumulative sum,
+  returns `(outcome::Int, collapsed_state::QuantumState)`.
+
+== Dogfooded Across The Account
 
 [cols="1,2"]
 |===
-| Technology | Learn More
+| Project | Connection
 
-| **Julia** | https://julialang.org
+| `ZeroProb.jl`
+| `QuantumMeasurementEvent` in ZeroProb models Born-rule measurement outcomes,
+  bridging directly to `measure`'s return type and collapse semantics.
+
+| `AcceleratorGate.jl`
+| Declared as a direct dependency in `Project.toml`; backend dispatch hooks in
+  `src/backends/abstract.jl` consume AcceleratorGate's coprocessor type hierarchy.
+
+| `Axiom.jl`
+| Shares the same backend abstraction pattern (Julia/Zig/GPU/coprocessor fallthrough);
+  QuantumCircuit was an early prototype of that architecture.
+
+| `developer-ecosystem/julia-ecosystem/`
+| Catalogued in the quantum-computing section alongside ZeroProb.jl.
+
+| `hypatia` CI scan
+| `hypatia-scan.yml` validates SPDX headers and RSR compliance on every push.
 |===
 
 == File Map
 
-[cols="1,2"]
+[cols="1,3"]
 |===
 | Path | What's There
 
-| `src/` | Source code
-| `test(s)/` | Test suite
+| `src/QuantumCircuit.jl`
+| Entire module (~320 lines): `Qubit`, `QuantumGate`, `QuantumState`,
+  `QuantumCircuitObj` types; gate constants; `apply_gate`, `measure`,
+  `tensor_product`, `state_evolve` with backend dispatch; `_expand_single_gate`
+  helper; conditional `_ka_kronecker!` KernelAbstractions GPU kernel.
+
+| `src/backends/abstract.jl`
+| Backend abstraction layer: `JuliaBackend` default singleton; stub signatures
+  for `backend_gate_apply`, `backend_measurement`, `backend_tensor_contract`,
+  `backend_state_evolve` returning `nothing`.
+
+| `ext/`
+| GPU extensions: `QuantumCircuitCUDAExt.jl`, `QuantumCircuitROCmExt.jl`,
+  `QuantumCircuitMetalExt.jl`. Coprocessor extensions: QPU, TPU, FPGA, NPU, VPU,
+  DSP, Math, Crypto, PPU variants — all AcceleratorGate-triggered.
+
+| `test/runtests.jl`
+| ~270 lines: type construction, gate unitarity, `apply_gate` correctness (7 cases
+  including two-qubit register tests), `measure` statistics over 100 samples,
+  `tensor_product` Kronecker correctness, `state_evolve` Rabi oscillation and
+  eigenstate checks, performance benchmarks (10k gates < 10s, 10-qubit tensor
+  product < 5s), Bell-state end-to-end pipeline. Chains to `e2e_test.jl`
+  and `property_test.jl`.
+
+| `Project.toml`
+| Package identity (uuid `b3d4e5f6...`), `AcceleratorGate` hard dependency,
+  `CUDA`/`AMDGPU`/`Metal`/`KernelAbstractions` weak dependencies, Julia ≥ 1.10.
+
+| `benches/`
+| Benchmark harness for gate throughput and tensor product scaling.
 |===
 
 == Questions?
 
-Open an issue or reach out directly — happy to explain anything in more detail.
+Open an issue or reach out — happy to explain the backend dispatch architecture
+or the Kronecker expansion in more detail.
