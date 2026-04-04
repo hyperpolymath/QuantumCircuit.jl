@@ -414,4 +414,9 @@ using LinearAlgebra
         end
         @test t < 10.0
     end
+
+    # CRG Grade C tests
+    include("e2e_test.jl")
+    include("property_test.jl")
+
 end
