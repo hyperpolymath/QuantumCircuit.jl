@@ -4,6 +4,7 @@
 
 using Test
 using QuantumCircuit
+using QuantumCircuit: HADAMARD, PAULI_X, PAULI_Y, PAULI_Z, num_qubits
 using LinearAlgebra
 
 @testset "QuantumCircuit.jl" begin
@@ -392,7 +393,7 @@ using LinearAlgebra
 
         t = @elapsed begin
             state = s
-            for _ in 1:10  # Build up to 2^10 = 1024 amplitudes
+            for _ in 2:10  # Start with one qubit; build up to 2^10 = 1024 amplitudes
                 state = tensor_product(state, s)
             end
         end

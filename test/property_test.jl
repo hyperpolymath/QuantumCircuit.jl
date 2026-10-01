@@ -4,6 +4,7 @@
 
 using Test
 using QuantumCircuit
+using QuantumCircuit: HADAMARD, PAULI_X, PAULI_Y, PAULI_Z, num_qubits
 using LinearAlgebra
 
 @testset "Property-Based Tests" begin
