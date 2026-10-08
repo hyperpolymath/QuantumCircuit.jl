@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MPL-2.0
 name = "QuantumCircuit"
-uuid = "b3d4e5f6-a7b8-4c9d-ae0f-1a2b3c4d5e6f"
+uuid = "01a11d29-d887-80e0-8c2e-f313792966ce"
 authors = ["Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"]
-version = "0.1.0"
+version = "0.1.1"
 license = "MPL-2.0"
 
 [deps]
