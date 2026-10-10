@@ -7,6 +7,15 @@ import? "contractile.just"
 default:
     @just --list
 
+# Core tests (golden path, part 1): the Julia package test suite.
+test:
+    julia --project=. -e 'using Pkg; Pkg.test()'
+
+# Quality gates (golden path, part 2): estate MUST checks. JuliaFormatter,
+# JET and Aqua gates are added by the julia-library archetype alignment (W2).
+quality: must-check
+    git diff --check HEAD
+
 # Self-diagnostic — checks dependencies, permissions, paths
 doctor:
     @echo "Running diagnostics for QuantumCircuit.jl..."
