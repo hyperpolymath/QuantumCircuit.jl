@@ -29,5 +29,16 @@ jobs:
         with:
           version: ${{ matrix.julia-version }}
       - uses: julia-actions/cache@e32267b41e0fa7df82a3d53e8c7273620d52c586 # v2
+      # The julia-professional-registry (JPR) moves on every push; pin the
+      # checkout to a reviewed commit so CI cannot go red from a registry
+      # change alone. Bump JPR_SHA deliberately, in its own PR.
+      - name: Fetch julia-professional-registry at a pinned commit
+        env:
+          JPR_SHA: 449703faea446669778aaeb8dfc3547bd578cfeb
+        run: |
+          git clone --quiet https://github.com/hyperpolymath/julia-professional-registry.git "$RUNNER_TEMP/jpr"
+          git -C "$RUNNER_TEMP/jpr" checkout --quiet "$JPR_SHA"
       - name: Install, build, test
-        run: julia --project=. -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/hyperpolymath/julia-professional-registry.git")); Pkg.instantiate(); Pkg.build(); Pkg.test()'
+        env:
+          JPR_PATH: ${{ runner.temp }}/jpr
+        run: julia --project=. -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.add(Pkg.RegistrySpec(path=ENV["JPR_PATH"])); Pkg.instantiate(); Pkg.build(); Pkg.test()'
