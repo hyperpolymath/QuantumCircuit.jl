@@ -13,7 +13,7 @@ toc::[]
 
 == Current Status
 
-* **v0.1.0**: Core framework, Idris2/Zig integration, single-qubit gates, measurement, state evolution.
+* **v0.1.1** (package version in `Project.toml`): Core framework in Julia, single-qubit gates, measurement, state evolution. Idris2/Zig integration is planned; no Idris2 or Zig sources exist in this repository.
 * **Research Prototype**: Not yet production-ready; API may change.
 
 ---

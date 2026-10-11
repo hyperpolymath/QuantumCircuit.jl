@@ -1,0 +1,312 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+= ULTRAPLAN: QuantumCircuit.jl open issues and estate conformance
+:toc:
+:icons: font
+:status: DRAFT — planning only, nothing here is authorised policy
+:date: 2026-10-10
+
+== 0. Scope and method
+
+Scope: the open issue list of `hyperpolymath/QuantumCircuit.jl` (one issue, #35),
+the repo's own state, and the binding estate material in
+`hyperpolymath/standards` (canon, practice, CHANGE-PROCEDURE, EXCEPTIONS-AND-ANCHORS)
+and `hyperpolymath/rsr-template-repo` (CLAUDE.md, `archetypes/julia-library`).
+
+Evidence was taken from the GitHub API (job metadata, commit trees, registry
+contents) and from the git history. The Actions log archive
+(`results-receiver.actions.githubusercontent.com`) is not reachable from the
+sandbox, so job *step* outcomes are used, not log text. Julia is not installed
+in the sandbox, so nothing below was reproduced by running the test suite.
+
+Authority classes (per `standards/AGENTS.adoc`): this document is *planning
+material*. It proposes; it does not change canon. Any change to normative estate
+material goes through `0-canon/constitution/CHANGE-PROCEDURE.adoc`.
+
+== 1. Issue #35: "Triage: 3 red checks surfaced by the citation PR #33"
+
+=== 1.1 Verdict (recommended): FIXED — close with evidence after owner confirmation
+
+The issue asks for each red check to be determined *fixed*, *retired* or
+*accepted with a documented exemption*, and, if fixed, green on `main` with the
+fix in the repo (not `continue-on-error`, not demoted). The evidence meets the
+"fixed" arm.
+
+Root cause (deterministic, not a flake):
+
+* `test/runtests.jl`, `test/e2e_test.jl` and `test/property_test.jl` used
+  `HADAMARD`, `PAULI_X`, `PAULI_Y`, `PAULI_Z` and `num_qubits` without importing
+  them. Those names are not exported by `QuantumCircuit`.
+* `main` at `d2545b7` (2026-09-28) has the same bare `using QuantumCircuit` in
+  `runtests.jl`. That matches the issue's "also red on main" claim.
+* The failing runs (`26b019a8` tree `7707628b`, `4cad0ade` tree `11ae9eab`,
+  and PR #33 head) all predate the fix. The Julia job fails at its
+  `Install, build, test` step in about 45 seconds, which fits a
+  load-time `UndefVarError` rather than a timing or network flake.
+* Fix: PR #34 squash `e4cb4e30` (2026-10-01 22:53, tree `bac9b4ef`) adds the
+  imports to all three test files. Current `main` (`640d3a4`, tree `80d80561`)
+  contains them. The branch commit `10e8fc47`
+  ("fix(tests): import gate constants and num_qubits ...") is *not* an ancestor
+  of `main`; the fix reached `main` through the #34 squash. Do not cite
+  `10e8fc47` as the merged fix.
+* Since `e4cb4e30`, every `main` CI run is green (for example run
+  `37845457433`, all three Julia jobs success), and so are the PR runs for
+  `#36`, `#37`, `#38`, `#39` and `#40`.
+
+Per-check disposition:
+
+[cols="3,2,5",options="header"]
+|===
+| Check | Disposition | Basis
+| Julia 1.10 - ubuntu-latest | FIXED | Same root cause; green on main since `e4cb4e30`.
+| Julia 1.11 - ubuntu-latest | FIXED | As above.
+| Julia 1.11 - macos-latest | FIXED | As above.
+| governance / Guix primary / Nix fallback policy (fourth red on the PR #33 head, *not listed in #35*) | FIXED (historical) | Red on PR #33 head run `36822110512`. Green on `main` run `37845458358`. Add it to the issue as an addendum.
+|===
+
+=== 1.2 Gaps the issue does not cover
+
+1. *Process gap.* The three reds were on a PR that was merged anyway, and the
+   fix arrived by a different PR (#34), not by a fix to the failing branch.
+   The estate rule is "a red check is an issue with acceptance criteria, not a
+   merge blocker". That is acceptable only if the issue is closed with
+   evidence. This plan asks for that closure.
+2. *Unrelated red on `main`.* The `Mirror to Git Forges` job failed on the
+   `main` push for `#39` (run `37845457673`). It is not in #35 and its logs are
+   unreachable from here. Open a separate triage issue.
+3. *Regression guard.* Nothing stops a test file from referencing an unexported
+   name again. Cheap fix: `using QuantumCircuit: ...` explicit imports are now in
+   place; add a test-only sanity check that fails the suite on unresolved
+   symbols (the existing `Pkg.test()` already does this; keep it as a required
+   check).
+
+=== 1.3 Action
+
+* [ ] Owner confirms the verdict above.
+* [ ] Post an evidence comment on #35 (this needs owner approval because it is
+      outward-facing), then close #35 with the `research` outcome recorded.
+
+== 2. Binding constraints vs. current repo state
+
+Each row: the rule, its source, what the repo does, and the gap.
+
+[cols="3,3,4,4",options="header"]
+|===
+| Rule | Source | Repo today | Gap / severity
+| *A2ML is retired.* Never create, restore or extend `.a2ml`. | `rsr-template-repo/CLAUDE.md`; `standards/AGENTS.adoc` (D99, D269c, D312, D313) | 22 tracked `.a2ml` files, including root `0-AI-MANIFEST.a2ml`, `.machine_readable/6a2/*` (9), `CLADE`, `bot_directives/*` (3), `contractiles/*` (4), `integrations/*` (4). No `*_chora.deed`. No `*.k9.ncl`. | *High.* Standards#994 carries "a live gate for the retired A2ML". Expect this to go red estate-wide. Migration needed (see 3.4).
+| *No Nix, Python, Go, TypeScript, Deno, ReScript, AGPL* (language policy) | `CLAUDE.md` estate language policy; `LANGUAGE-POLICY.adoc` | No `flake.nix`, `*.py`, `*.ts`, `*.go`, `package.json` or `deno.json` tracked. CI is bash plus Julia. `LICENSES/AGPL-3.0-or-later.txt` is present as a reference file. | *Low* for languages. *Owner decision* on the AGPL text file (see 4, D-4).
+| *JSON is I-JSON + JCS, one LF.* Rule in force for new or rewritten files. | `3-practice/JSON-POLICY.adoc` (D306) | `.github/labels.json` and `.github/label-classifier.json` are pretty-printed, not JCS. Both fail `jq -S -c` canonical comparison. | *Low.* Report-only gate today. Fix when next rewritten, or in a dedicated commit with `ijson-jcs fix`.
+| *YAML: GitHub workflows stay YAML.* Estate config becomes KYAML only once D280's lock-coverage shim is required. | `CLAUDE.md` (KYAML, D280, D293) | Workflows are YAML. | *None now.* Do not convert.
+| *UUIDv8 for every new identifier.* | `CLAUDE.md` (D305, ADR-008) | Package UUID `01a11d29-d887-80e0-8c2e-f313792966ce` is v8 (version nibble `8`). | *None* for the package UUID. Other UUID literals not yet audited.
+| *Signed commits on the default branch.* | `CONTRIBUTING.md` "Signed commits"; `CLAUDE.md` doctrine 9 | GitHub reports `640d3a4` as verified. The sandbox has no `gpg`, so local commits here cannot be signed yet. | *Blocking for committing from this session* (see 4, D-5).
+| *Actions are pinned, with a lock.* Regenerate the lock in the same PR as any `uses:` change. | `archetypes/julia-library` `actions.lock`; `standards` `actions-lock-gate.yml` | `.github/workflows/ci.yml` pins `julia-actions/cache` to `e32267b…` (`# v2`). The template pins `v3.5.0` (`9353db09…`). No `.github/workflows/actions.lock` exists. | *Medium.* The gate will flag this.
+| *No `continue-on-error` on a MUST check.* | `archetypes/julia-library` CI header | No `continue-on-error` in the repo's workflows. | *None.* Keep it that way.
+| *Julia-library CI MUSTs:* JuliaFormatter, JET, Aqua, and a `[compat]` floor test. | `archetypes/julia-library/overlay/.github/workflows/julia-ci.yml.in`; `overlay/test/runtests.jl` | CI runs a single `Pkg.test()` matrix on 1.10 and 1.11 (ubuntu) plus 1.11 (macos). No format, JET or Aqua job. The compat floor (1.10) is tested. | *Medium.* Adopting the template's jobs is the main conformance gap.
+| *Golden path:* `just test && just quality` → core tests pass, quality gates pass, no unresolved critical security findings. | `rsr-template-repo/CLAUDE.md` (ANCHOR) | `Justfile` has no `test` or `quality` recipe. Only `doctor`, `tour`, `help-me`, `assail`, `llm-context`, `crg-*`, `secret-scan-trufflehog`. | *High for the golden path.* The repo cannot run its own golden path.
+| *Report faithfully, no overclaim. Never describe tested work as proven.* | `CLAUDE.md` doctrine 10; `standards/AGENTS.adoc` | `PROOF-PROGRESS.adoc` marks 13 items "✅ VERIFIED" for what are unit tests. The README licence badge image reads MPL-2.0, but its alt text says `License: PMPL-1.0` and it links to `palimpsest-license`. `ROADMAP.adoc` and `EXPLAINME.adoc` mention Idris2 and Zig integration; no `.idr` or `.zig` files exist. `.machine_readable/6a2/STATE.a2ml` says `0.0.0-dev`, phase `skeleton`, 15%, while `Project.toml` says `0.1.1`. | *Medium.* Doc truthfulness. Licence badge is owner-only (see D-4).
+| *Deterministic validation.* No unseeded randomness in gating tests; no wall-clock thresholds in `Pkg.test()` for Julia CI. | Estate practice (`3-practice/TEST-NEEDS`, `ZIGZAG-TESTING`); `CLAUDE.md` "fail loudly" | 10 unseeded `rand()` calls in `test/`; no `Random.seed!`. Three `@elapsed < 10 s` / `< 5 s` performance assertions run inside `Pkg.test()`. | *Medium.* Latent flake risk, not the cause of #35.
+| *Dependency resolution is reproducible.* | Estate practice | CI runs `Pkg.Registry.add(RegistrySpec(url=julia-professional-registry))` at its moving `main`. That registry changed on 2026-10-09 (`e8383fb`, UUID re-mint). Current entries match this repo (`Q/QuantumCircuit` 0.1.1 tree `80d80561`; `A/AcceleratorGate` 0.1.0 tree `3f4ef988`, both verified to exist). | *Medium.* Unpinned registry. A future registry change can turn `main` red with no code change.
+|===
+
+== 3. The ultraplan: work packages
+
+Ordering: W0 first, then W1 (small, in-repo, no owner gate beyond review), then
+W2 and W3 (need owner rulings). W4 is verification. Each package lists
+acceptance criteria; a package is done only when its criteria are green on
+`main`, not when a branch is pushed.
+
+=== W0. Close out #35 (research outcome)
+
+Acceptance: #35 has a comment with the evidence in 1.1 and is closed (or
+re-labelled with a named exemption if the owner rejects "fixed"). Addendum
+records the Guix/Nix historical red and the `Mirror to Git Forges` red on `main`.
+
+=== W1. Make the core green and deterministic (in-repo, low risk)
+
+W1.1 *Golden path recipes.* Add `test` (runs `julia --project=. -e 'using Pkg; Pkg.test()'`)
+and `quality` (runs the format, JET and Aqua gates from W2.2) to the `Justfile`.
+Acceptance: `just test && just quality` runs and passes locally and in CI.
+
+W1.2 *Seed the random tests.* Add `using Random` and a fixed `Random.seed!`
+at the top of each test file that calls `rand`/`randn`. Acceptance: 10 unseeded
+call sites → 0; three consecutive green runs.
+
+W1.3 *Move timing assertions out of `Pkg.test()`.* Keep the `@elapsed` probes in
+`benches/benchmarks.jl` and make the `@test t < …` lines into non-gating
+reports. Acceptance: `Pkg.test()` has no wall-clock assertions.
+
+W1.4 *Pin the registry.* In the CI install step, check out the JPR registry at a
+named commit (currently `449703f`) rather than its moving head, and record the
+decision in the workflow comment. Acceptance: the install step is deterministic
+for a given commit SHA. (See D-2 for the alternative.)
+
+W1.5 *Lock the actions.* Bump `julia-actions/cache` to `v3.5.0` (`9353db09…`),
+and generate `.github/workflows/actions.lock` with `gh actions-lock`, in the same
+PR. Acceptance: `actions-lock-gate` green. No `continue-on-error`.
+
+W1.6 *Honest docs.* Replace "✅ VERIFIED" in `PROOF-PROGRESS.adoc` with
+"unit-tested (tests: …)" and remove or mark as planned the Idris2 and Zig
+claims in `ROADMAP.adoc` and `EXPLAINME.adoc`. Acceptance: every "verified"
+claim names the test that backs it, or says it is not verified. Licence badge
+is *not* changed here (D-4).
+
+=== W2. Conform the Julia CI to the julia-library archetype
+
+W2.1 *Add the test-tree layout.* Follow `archetypes/julia-library` for
+`test/runtests.jl` (Aqua first, then `test/cases/*.jl`). Add `Aqua` to
+`[extras]` and `[targets]`. Acceptance: `Aqua.test_all(QuantumCircuit)` passes.
+
+W2.2 *Add the format and static-analysis jobs.* JuliaFormatter in check mode
+and JET, as in the template's `julia-ci.yml.in`. A formatting diff may
+land first. Acceptance: both jobs green on `main`, no `continue-on-error`.
+
+W2.3 *Decide the Julia matrix.* The template tests `1.9` and `1`. This repo
+declares `julia = "1.10"` and tests `1.10` and `1.11`. Keep the repo's floor
+unless the owner moves the compat floor (D-6).
+
+=== W3. Estate conformance that needs owner rulings
+
+W3.1 *A2ML retirement (High).* 22 files.
+* Do not bulk hand-convert. The estate says conversion is kcX's first front
+  end (D313), and the deed grammar is authoritative (D308).
+* Target: `QuantumCircuit.jl_chora.deed` (or the name the deed grammar
+  requires), with clauses for identity, IS / IS-NOT, status, maturity,
+  agentic, ecosystem, anchor, neurosym and playbook, mapped using
+  `standards/1-formats/deed/mappings/`.
+* Contractiles (intend, must, trust, adjust, bust, dust) become k9 contracts in
+  `.machine_readable/contractiles/<verb>/`.
+* Delete an `.a2ml` only after its deed clause exists and validates
+  (`bun 1-formats/deed/tools/deed_lint.js`).
+* Acceptance: no tracked `.a2ml`; deed lint passes; k9 `--strict` passes where
+  applicable.
+* *Owner ruling needed (D-3).*
+
+W3.2 *Packaging policy (Guix / Nix).* The gate applies only if the repo declares
+a packaging capability. There is no profile, so the gate is not applicable and
+passes. Two things to settle: whether this Julia library is a
+`reproducible-build` (if yes, it needs a `guix.scm` or a sealed `Containerfile`),
+and that the gate reads `.machine_readable/rsr-profile.a2ml`, which is retired.
+That is a tension to record on `standards#994`, not to work around by adding an
+`.a2ml` file. *Owner ruling needed (D-7).*
+
+W3.3 *JSON canonicalisation.* Run `ijson-jcs fix` on `.github/labels.json` and
+`.github/label-classifier.json` in a dedicated commit. Acceptance: `ijson-jcs
+check` exits 0. Low priority; report-only gate today.
+
+W3.4 *Signing.* The sandbox cannot sign commits. Either the owner provisions the
+signing key for this session, or changes are left uncommitted for the owner to
+commit. *Owner action needed (D-5).*
+
+=== W4. Verification and close-out
+
+* Run `just test && just quality` on the branch, then on `main` after merge.
+* `git diff --check`.
+* Governance workflow green on the PR (`governance / *`).
+* Confirm no check on `main` is `continue-on-error`, demoted, or skipped by a
+  new condition.
+* Regenerate any derived output twice and require a clean second pass (where
+  generated outputs exist).
+* Record evidence in `docs/status/ROADMAP.adoc`, not in `STATE.a2ml`.
+
+== 4. Owner decisions
+
+Each option is labelled. Per doctrine 15, the most elegant and correct
+long-term option is the *default arm*, and any departure from it is named.
+
+[cols="1,4,4,3",options="header"]
+|===
+| ID | Question | Options (default arm marked ★) | Recommendation
+| D-1 | Close #35 as "fixed" with evidence? | ★ (a) Yes, close with the 1.1 evidence and the addendum. (b) Keep open until the 4th-red addendum and the Mirror red are triaged. | (a). The three named reds are fixed; the other two are separate issues.
+| D-2 | How should the JPR registry be pinned? | ★ (a) Pin the JPR checkout to a commit SHA in CI (W1.4). (b) Register `AcceleratorGate` and `QuantumCircuit` in the General registry, so the JPR dependency disappears. | (a) now. (b) is the long-term elegant option but is an estate-wide publishing decision; it departs from the JPR model that the estate currently uses.
+| D-3 | How should A2ML be retired? | ★ (a) Tool-assisted migration to a deed plus k9 contracts per W3.1, one repo at a time. (b) Hand-written deed. | (a). Hand-conversion is what D313 says not to do.
+| D-4 | Licence hygiene: the `AGPL-3.0-or-later.txt` reference file and the README badge whose alt text says `PMPL-1.0` while it links to `palimpsest-license`. | Licence edits are manual and owner-only (doctrine 6). ★ (a) Owner decides and edits. (b) Agent proposes a patch for owner review. | (a). No automated licence edits.
+| D-5 | How should commits from this session be signed? | ★ (a) Owner provisions a signing key for the sandbox. (b) Changes stay uncommitted until the owner commits. | (a) if the session needs to commit; otherwise (b).
+| D-6 | Julia compat floor: keep `1.10`, or move to `1.9` like the template? | ★ (a) Keep `1.10`; it matches the declared compat and is already tested. (b) Move to `1.9`. | (a). Moving the floor needs a compat review.
+| D-7 | Is this a `reproducible-build` repo that needs a `guix.scm`? | (a) Yes, add `guix.scm`. ★ (b) No, record as not applicable with a named reason, and raise the `rsr-profile` retirement tension on `standards#994`. | (b) until the profile question is settled estate-wide.
+|===
+
+== 5. Things this plan deliberately does not do
+
+* Does not edit `TOPOLOGY.adoc` (frozen snapshot, per `standards/AGENTS.adoc`).
+* Does not create, restore or extend any `.a2ml` file.
+* Does not change licences or the licence badge (doctrine 6, owner-only).
+* Does not use `continue-on-error`, admin override, or ruleset changes to clear a
+  red check (doctrine 5).
+* Does not touch the JPR registry; it is a different repository with its own
+  ADR and BDFL review (`docs/REGISTRY-POLICY.adoc`).
+* Does not close or merge PRs. PR #40 (Dependabot) is `UNSTABLE`. Its non-success
+  entries are a skipped `Validate Hypatia Baseline` job and one pending check; no
+  failing check was observed.
+
+== 6. Sequencing
+
+[cols="1,4,3",options="header"]
+|===
+| Step | Work | Gate
+| 1 | W0 (owner confirms D-1, then comment and close #35) | D-1
+| 2 | W1.1–W1.3 (Justfile recipes, seeded RNG, timing out of `Pkg.test`) | none beyond review
+| 3 | W1.4–W1.5 (registry pin, actions lock and cache bump) | D-2 for the pin approach
+| 4 | W1.6 (honest docs) | none beyond review; licence badge excluded (D-4)
+| 5 | W2 (archetype alignment: Aqua, JuliaFormatter, JET) | D-6 if the floor changes
+| 6 | W3.1 (A2ML → deed) | D-3
+| 7 | W3.2 / W3.3 / W3.4 | D-7, D-5
+| 8 | W4 verification | all above
+|===
+
+== 7. Evidence index
+
+* Issue: `hyperpolymath/QuantumCircuit.jl#35` (OPEN, label `research`).
+* PR #33 head checks: run `36822109517` (Julia), `36822110512` (governance).
+* Failing `main` runs: `36870804842` (tree `7707628b`, `26b019a8`), `36835477936` (tree `11ae9eab`, `4cad0ade`).
+* Passing after fix: `36886386613` (tree `bac9b4ef`, `45ff6b4a`), `37114967306` (`166ec4f9`), `37845457433` (`640d3a4`, tree `80d80561`).
+* Test import fix: `e4cb4e30` (PR #34 squash). Branch-only fix commit: `10e8fc47` (not on `main`).
+* Governance on `main`: run `37845458358`, all jobs success except `Validate Hypatia Baseline` (skipped).
+* Registry: `hyperpolymath/julia-professional-registry@449703f` (HEAD);
+  `e8383fb` (2026-10-09, UUID re-mint, PR #107).
+* Standards: `hyperpolymath/standards#994` (cross-cutting governance reds, OPEN).
+* Template: `rsr-template-repo/CLAUDE.md`, `archetypes/julia-library/`.
+
+== 8. Status at end of this session
+
+Working tree on `arena/7e77ef23-quantumcircuit-jl`, uncommitted (no signing key
+in the sandbox, so commits cannot be signed yet; see D-5).
+
+[cols="1,2,5",options="header"]
+|===
+| Item | State | Detail
+| W0 (#35 closure) | *Blocked* | The evidence comment was rejected by GitHub with "Resource not accessible by integration" (the token can push, but issue writes failed). Not retried with workarounds. Owner needs to re-check GitHub access for issue writes, then post the evidence from section 1.1 and close.
+| W1.1 golden-path recipes | *Done, locally verified* | `Justfile` has `test` and `quality`. `just --list` and `just --dry-run` parse them. `just quality` runs `must-check` and `git diff --check` and passes. `just test` (Julia) is not run here.
+| W1.2 seeded RNG | *Done, not executed* | `Random.seed!(20261010)` at the top of `test/runtests.jl`. Julia is not installed, so the suite has not been run.
+| W1.3 timing out of `Pkg.test()` | *Done, not executed* | Wall-clock assertions removed. Three performance testsets keep their functional checks, plus a normalisation check for `state_evolve`, which now chains 100 steps and returns the final state.
+| W1.4 registry pin | *Done, YAML parsed* | `ci.yml` clones JPR at `449703f` into `$RUNNER_TEMP/jpr` and adds it with `RegistrySpec(path=...)`. Parsed with `js-yaml`. The CI run itself is not verified.
+| W1.5 actions lock and cache bump | *Not done (blocked)* | The `gh actions-lock` tool is not available here. The estate rule is to regenerate the lock in the same PR as a `uses:` change, so the `cache` bump was not made alone. Needs the tool or an owner decision.
+| W1.6 honest docs | *Done* | `PROOF-PROGRESS.adoc`: "VERIFIED" → "UNIT-TESTED" for core gates; backend, GPU and coprocessor rows → "NOT TESTED IN CI". `ROADMAP.adoc`: v0.1.1, Idris2/Zig marked as planned. The licence badge is unchanged (D-4).
+| W2 | Not started | Needs D-6.
+| W3 | Not started | Needs D-3, D-5, D-7.
+|===
+
+Files changed: `Justfile`, `test/runtests.jl`, `.github/workflows/ci.yml`,
+`PROOF-PROGRESS.adoc`, `ROADMAP.adoc`, and this plan (new file, `docs/plans/`).
+
+=== 8.1 Second pass ("do it")
+
+[cols="1,2,5",options="header"]
+|===
+| Item | State | Detail
+| W0 (#35 closure) | *Still blocked* | Retried the comment: same "Resource not accessible by integration". Needs GitHub issue-write access restored for the connection, or the owner posts and closes.
+| W1.5 actions lock and cache bump | *Still blocked* | The official `github/gh-actions-lock` extension installs, but its release asset host is not on the sandbox allowlist, so the binary cannot be fetched. Hand-writing the lock is forbidden (machine-generated). The `cache` bump was not made alone.
+| W3.1 A2ML → deed | *Blocked by an instance deficiency* | `a2ml_to_deed.py full` (run on a scratch copy only) fails closed: `clade: required field clade.primary-name missing`. The translator refuses to invent identifiers. Needs the owner to supply the clade primary name (or a registry fix) and a `--beholding-chora` decision. `migrate_a2ml_to_deed.sh` is a stub and does nothing.
+| W3.3 JSON canonicalisation | *Done* | `.github/labels.json` and `.github/label-classifier.json` rewritten to compact, sorted-key, single-LF form. Semantic equality verified with `jq -S`. No fractional numbers; keys are ASCII. The official `ijson-jcs` binary was not used. Its semantics match for this data.
+| W2 (archetype CI jobs) | *Not started* | Adding Aqua, JuliaFormatter and JET needs Julia to validate (format diff unknown, compat entries unknown). Not attempted blind, because a broken CI job here would be worse than a missing one.
+| W4 verification | `just quality` passes; `git diff --check` clean | Julia suite not runnable in this sandbox.
+|===
+
+Commit status: unchanged. There is no signing key in the sandbox, so nothing is committed.
+
+=== 8.2 Third pass ("do it" again)
+
+* *#35 comment/close:* still rejected with "Resource not accessible by integration". No change.
+* *Actions lock:* `gh extension install github/gh-actions-lock` now reports a broken install (no binary). The broken extension was removed. Still blocked (release host unreachable).
+* *A2ML → deed:* `gv-clade-index` lists this repo as clade `dx` (`lineage = standalone`), but with UUID `1984f880-21f3-5d89-a429-9a498430585c`. The repo's current UUID is `01a11d29-d887-80e0-8c2e-f313792966ce`, the v8 re-mint from #39. The index is stale. The translator's blocker is `clade.primary-name`. That field is absent from the index too, so it is a standards-level gap (already noted on standards#837), not something to fill in here. Owner action: confirm the primary-name rule, and refresh the clade index UUID (the index is a separate repo, so it was not edited).
+* *Commit signing:* no SSH or GPG key in the sandbox. Not generated: a signing key must be the owner's, provisioned for this session.
+
+Nothing further can be completed in this sandbox without the owner's action on the items above.

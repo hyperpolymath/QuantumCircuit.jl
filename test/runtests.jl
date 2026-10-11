@@ -6,6 +6,11 @@ using Test
 using QuantumCircuit
 using QuantumCircuit: HADAMARD, PAULI_X, PAULI_Y, PAULI_Z, num_qubits
 using LinearAlgebra
+using Random
+
+# Fixed seed: every random input in the suite is reproducible, so a red run
+# is a code change, not a dice roll. Included files share this RNG stream.
+Random.seed!(20261010)
 
 @testset "QuantumCircuit.jl" begin
 
@@ -375,45 +380,43 @@ using LinearAlgebra
         @test num_qubits(state) == 2
     end
 
-    # ── Benchmarks ─────────────────────────────────────────────────────
-    @testset "Performance: single-qubit gate application" begin
+    # ── Performance smoke (functional only) ────────────────────────────
+    # Wall-clock thresholds are NOT asserted here: they are flaky on shared
+    # CI runners and gate nothing about correctness. Timing lives in
+    # benches/benchmarks.jl. These testsets check the workloads still run
+    # and still produce correct results.
+    @testset "Performance smoke: single-qubit gate application" begin
         state = QuantumState(ComplexF64[1.0, 0.0])
         h_gate = QuantumGate("H", HADAMARD, [Qubit(1)])
 
-        t = @elapsed begin
-            for _ in 1:10_000
-                state = apply_gate(state, h_gate)
-            end
+        for _ in 1:10_000
+            state = apply_gate(state, h_gate)
         end
-        @test t < 10.0  # 10k single-qubit gates should be fast
+        @test sum(abs2.(state.amplitudes)) ≈ 1.0 atol=1e-9
     end
 
-    @testset "Performance: tensor product scaling" begin
+    @testset "Performance smoke: tensor product scaling" begin
         s = QuantumState(ComplexF64[1.0, 0.0])
 
-        t = @elapsed begin
-            state = s
-            for _ in 2:10  # Start with one qubit; build up to 2^10 = 1024 amplitudes
-                state = tensor_product(state, s)
-            end
+        state = s
+        for _ in 2:10  # Start with one qubit; build up to 2^10 = 1024 amplitudes
+            state = tensor_product(state, s)
         end
         @test num_qubits(state) == 10
-        @test t < 5.0
+        @test length(state.amplitudes) == 2^10
     end
 
-    @testset "Performance: state evolution" begin
+    @testset "Performance smoke: state evolution" begin
         n = 4  # 4-qubit system
         dim = 2^n
         state = QuantumState(vcat(ComplexF64[1.0], zeros(ComplexF64, dim - 1)))
         H = Hermitian(randn(ComplexF64, dim, dim))
         H_mat = Matrix{ComplexF64}(H)
 
-        t = @elapsed begin
-            for _ in 1:100
-                state_evolve(state, H_mat, 0.01)
-            end
+        for _ in 1:100
+            state = state_evolve(state, H_mat, 0.01)
         end
-        @test t < 10.0
+        @test sum(abs2.(state.amplitudes)) ≈ 1.0 atol=1e-8
     end
 
     # CRG Grade C tests

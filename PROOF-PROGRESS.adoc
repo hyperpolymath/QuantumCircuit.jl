@@ -22,19 +22,19 @@ the QuantumCircuit.jl Julia package as of 2026-08-14. It consolidates informatio
 |===
 | Component | Status | Details
 
-| Gate application | ✅ VERIFIED | Correct unitary mathematics with Kronecker expansion
+| Gate application | ✅ UNIT-TESTED | Correct unitary mathematics with Kronecker expansion
 
-| Standard gates (H, X, Y, Z) | ✅ VERIFIED | Unitarity and self-adjointness tests pass
+| Standard gates (H, X, Y, Z) | ✅ UNIT-TESTED | Unitarity and self-adjointness tests pass
 
-| Hadamard gate | ✅ VERIFIED | H|0⟩ = (|0⟩ + |1⟩)/√2, H² = I
+| Hadamard gate | ✅ UNIT-TESTED | H|0⟩ = (|0⟩ + |1⟩)/√2, H² = I
 
-| Pauli-X gate | ✅ VERIFIED | X|0⟩ = |1⟩, X|1⟩ = |0⟩
+| Pauli-X gate | ✅ UNIT-TESTED | X|0⟩ = |1⟩, X|1⟩ = |0⟩
 
-| Pauli-Z gate | ✅ VERIFIED | Z(|0⟩+|1⟩)/√2 = (|0⟩-|1⟩)/√2
+| Pauli-Z gate | ✅ UNIT-TESTED | Z(|0⟩+|1⟩)/√2 = (|0⟩-|1⟩)/√2
 
-| Normalization preservation | ✅ VERIFIED | State vector normalization preserved after every gate
+| Normalization preservation | ✅ UNIT-TESTED | State vector normalization preserved after every gate
 
-| Hamiltonian evolution | ✅ VERIFIED | exp(-i·H·dt) computation verified
+| Hamiltonian evolution | ✅ UNIT-TESTED | exp(-i·H·dt) computation verified
 
 | Multi-backend dispatch | 🟡 PARTIAL | Architecture real; GPU/coprocessor backends are stubbed
 
@@ -44,12 +44,12 @@ the QuantumCircuit.jl Julia package as of 2026-08-14. It consolidates informatio
 
 | Formal verification integration | 🟡 PLANNED | Integration with Axiom.jl for formal proofs
 
-| Bell state creation | ✅ VERIFIED | (|00⟩ + |11⟩)/√2 generation verified
+| Bell state creation | ✅ UNIT-TESTED | (|00⟩ + |11⟩)/√2 generation verified
 
-| Rabi oscillation | ✅ VERIFIED | Pauli-X time evolution matches analytical solution
+| Rabi oscillation | ✅ UNIT-TESTED | Pauli-X time evolution matches analytical solution
 |===
 
-**Overall:** QuantumCircuit.jl provides a **verified quantum circuit simulation**
+**Overall:** QuantumCircuit.jl provides a **unit-tested quantum circuit simulation**
 framework with correct unitary mathematics. All standard quantum gates are tested
 for unitarity and correct state transformations. The backend dispatch architecture
 is complete, with GPU and coprocessor backends stubbed but falling through to the
@@ -59,7 +59,7 @@ pure Julia implementation. Formal verification integration is planned.
 
 === Core Mathematical Guarantees
 
-QuantumCircuit.jl is built on a foundation of verified quantum mechanics:
+QuantumCircuit.jl is built on gate mathematics that is unit-tested (see the tables below for what is and is not tested):
 
 **State Representation:**
 - Quantum states are represented as complex-valued vectors in a 2^n-dimensional Hilbert space
@@ -165,11 +165,11 @@ KernelAbstractions.jl when CUDA.jl or similar packages are present.
 |===
 | Property | Description | Status | Evidence
 
-| Backend fallthrough | Non-implemented backends fall to Julia | ✅ VERIFIED | Architecture design
+| Backend fallthrough | Non-implemented backends fall to Julia | ⚠ NOT TESTED IN CI | Architecture design only
 
-| GPU kernel compilation | Conditional on CUDA/ROCm/Metal | ✅ VERIFIED | Extension mechanism
+| GPU kernel compilation | Conditional on CUDA/ROCm/Metal | ⚠ NOT TESTED IN CI | Extension mechanism only; no GPU runner
 
-| Coprocessor interface | Type hierarchy consumed correctly | ✅ VERIFIED | AcceleratorGate.jl integration
+| Coprocessor interface | Type hierarchy consumed correctly | ⚠ NOT TESTED IN CI | Extension imports AcceleratorGate.jl; no test loads it
 
 | Result equivalence | GPU results match Julia results | 🟡 UNVERIFIED | Tests run on Julia only
 |===
