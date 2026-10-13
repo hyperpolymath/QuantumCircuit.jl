@@ -166,7 +166,7 @@ unless the owner moves the compat floor (D-6).
 === W3. Estate conformance that needs owner rulings
 
 W3.1 *A2ML retirement (High).* 22 files.
-* Do not bulk hand-convert. The estate says conversion is kcX's first front
+* Do not bulk hand-convert. The estate says conversion is kyX's first front
   end (D313), and the deed grammar is authoritative (D308).
 * Target: `QuantumCircuit.jl_chora.deed` (or the name the deed grammar
   requires), with clauses for identity, IS / IS-NOT, status, maturity,
